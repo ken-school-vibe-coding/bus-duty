@@ -1,0 +1,1179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>MJHS PM Bus Board</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Bus Board">
+<meta name="theme-color" content="#0b0b0c">
+<style>
+/* ============================================================
+   THEME / BASE
+   ============================================================ */
+:root{
+  --bg:#0b0b0c; --fg:#ffffff; --muted:#9aa0a6;
+  --box:#1b1c1f; --boxb:#3c4048; --boxempty:#141518;
+  --accent:#ffd400; --accent-fg:#0b0b0c;
+  --sub:#ff5a3c;              /* red-marker convention for substitutes */
+  --ok:#37d67a; --danger:#ff4d4d;
+  --panel:#141518;
+}
+:root[data-theme="light"]{
+  --bg:#f3f3f4; --fg:#111111; --muted:#555555;
+  --box:#ffffff; --boxb:#c7c7cc; --boxempty:#e9e9ec;
+  --accent:#b58900; --accent-fg:#ffffff;
+  --sub:#c62828;
+  --ok:#1b8a3f; --danger:#c0392b;
+  --panel:#ffffff;
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+html,body{margin:0; padding:0;}
+body{
+  background:var(--bg); color:var(--fg);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  font-size:18px; line-height:1.3;
+  padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  overscroll-behavior:none;
+}
+h1,h2,h3{margin:0 0 .4em;}
+.screen{display:none; padding:12px; max-width:760px; margin:0 auto;}
+body[data-screen="setup"]  #screen-setup   {display:block;}
+body[data-screen="capture"] #screen-capture {display:block;}
+body[data-screen="board"]  #screen-board   {display:block;}
+
+/* ============================================================
+   CONTROLS
+   ============================================================ */
+button{
+  font-family:inherit; font-size:20px; font-weight:700;
+  color:var(--fg); background:var(--box); border:2px solid var(--boxb);
+  border-radius:12px; min-height:60px; padding:10px 14px;
+  cursor:pointer; touch-action:manipulation;
+}
+button:active{filter:brightness(1.25);}
+.btn-primary{background:var(--accent); color:var(--accent-fg); border-color:var(--accent);}
+.btn-danger{background:var(--danger); color:#fff; border-color:var(--danger);}
+.btn-wide{width:100%;}
+.row{display:flex; gap:8px;}
+.row > *{flex:1;}
+textarea{
+  width:100%; min-height:160px; font-size:17px; font-family:inherit;
+  background:var(--panel); color:var(--fg); border:2px solid var(--boxb);
+  border-radius:12px; padding:12px;
+}
+input[type=text]{
+  font-size:18px; font-family:inherit; padding:12px; border-radius:10px;
+  border:2px solid var(--boxb); background:var(--panel); color:var(--fg); width:100%;
+}
+.topbar{display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px;}
+.topbar h1{font-size:20px; margin:0;}
+.pill{font-size:14px; color:var(--muted);}
+.mini-btn{min-height:44px; font-size:15px; padding:6px 10px;}
+
+/* ============================================================
+   BOARD (spatial miniature)
+   ============================================================ */
+.board-wrap{display:flex; gap:18px; justify-content:center; align-items:flex-start;}
+.board-col{display:flex; flex-direction:column; gap:6px;}
+.board-section-label{font-size:12px; color:var(--muted); text-align:center; margin-bottom:4px; letter-spacing:.05em;}
+.right-group{display:flex; gap:6px;}
+.slot{
+  width:64px; min-height:56px; border:2px solid var(--boxb); border-radius:10px;
+  background:var(--box); display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding:4px 2px; text-align:center;
+}
+.slot .sn{font-size:11px; color:var(--muted); line-height:1;}
+.slot .bus{font-size:19px; font-weight:800; line-height:1.05; overflow-wrap:anywhere;}
+.slot .ride{font-size:11px; font-weight:800; color:var(--sub); line-height:1.1; margin-top:1px;}
+.slot.empty{background:var(--boxempty); border-style:dashed;}
+.slot.empty .bus{color:var(--muted); font-size:13px; font-weight:600;}
+.slot.tappable{cursor:pointer;}
+.slot.recent{border-color:var(--accent);}
+
+/* big board on screen 3 */
+#screen-board .slot{width:96px; min-height:88px;}
+#screen-board .slot .sn{font-size:14px;}
+#screen-board .slot .bus{font-size:28px;}
+#screen-board .slot .ride{font-size:16px;}
+#screen-board .board-section-label{font-size:15px;}
+
+/* ============================================================
+   CAPTURE SCREEN
+   ============================================================ */
+#viewfinder-wrap{
+  position:relative; width:100%; height:150px; background:#000;
+  border-radius:12px; overflow:hidden; margin:10px 0; border:2px solid var(--boxb);
+  display:flex; align-items:center; justify-content:center;
+}
+#viewfinder{width:100%; height:100%; object-fit:cover;}
+#cam-mode{
+  position:absolute; top:6px; left:6px; font-size:12px; font-weight:700;
+  background:rgba(0,0,0,.6); color:#fff; padding:3px 7px; border-radius:6px;
+}
+#cam-fallback-msg{color:var(--muted); font-size:14px; padding:0 12px; text-align:center;}
+
+.legbar{display:flex; gap:6px; margin:8px 0;}
+.legbar button{flex:1; min-height:64px; font-size:17px; display:flex; flex-direction:column; gap:2px; align-items:center; justify-content:center;}
+.legbar button .lc{font-size:13px; color:var(--muted); font-weight:700;}
+.legbar button.active{background:var(--accent); color:var(--accent-fg); border-color:var(--accent);}
+.legbar button.active .lc{color:var(--accent-fg);}
+
+.chipgrid{display:grid; grid-template-columns:repeat(auto-fill,minmax(92px,1fr)); gap:8px; margin:10px 0;}
+.chip{
+  min-height:76px; border:2px solid var(--boxb); border-radius:12px; background:var(--box);
+  display:flex; flex-direction:column; align-items:center; justify-content:center; padding:6px 4px; text-align:center;
+}
+.chip .cn{font-size:24px; font-weight:800; line-height:1.05;}
+.chip .cr{font-size:12px; color:var(--muted);}
+.chip.sub{border-color:var(--sub);}
+.chip.sub .cs{font-size:12px; font-weight:800; color:var(--sub); margin-top:2px;}
+#sub-btn{width:100%; background:var(--sub); color:#fff; border-color:var(--sub); min-height:64px; margin-top:4px;}
+
+/* ============================================================
+   OVERLAYS
+   ============================================================ */
+.overlay{
+  position:fixed; inset:0; background:rgba(0,0,0,.92); z-index:50;
+  display:none; flex-direction:column; padding:16px;
+  padding-top:calc(env(safe-area-inset-top) + 16px);
+}
+.overlay.on{display:flex;}
+.overlay img{max-width:100%; max-height:78vh; object-fit:contain; margin:auto; border-radius:8px;}
+.overlay .ov-actions{display:flex; gap:8px; margin-top:12px;}
+.overlay .ov-actions > *{flex:1;}
+.overlay h2{color:#fff;}
+
+/* keypad */
+#keypad .display{
+  font-size:40px; font-weight:800; text-align:center; color:#fff;
+  background:#000; border:2px solid var(--boxb); border-radius:12px; padding:14px; margin-bottom:12px; min-height:64px;
+  letter-spacing:.04em;
+}
+#keypad .keys{display:grid; grid-template-columns:repeat(3,1fr); gap:10px;}
+#keypad .keys button{min-height:68px; font-size:26px;}
+#keypad-warn{color:var(--sub); font-weight:700; text-align:center; margin:8px 0; min-height:22px;}
+
+/* toast */
+#toast{
+  position:fixed; left:50%; bottom:calc(env(safe-area-inset-bottom) + 20px); transform:translateX(-50%);
+  background:var(--panel); color:var(--fg); border:2px solid var(--accent);
+  padding:12px 18px; border-radius:12px; font-weight:700; z-index:80; max-width:90vw; text-align:center;
+  display:none;
+}
+
+.parsed-item{display:flex; align-items:center; gap:8px; padding:10px; border:2px solid var(--boxb); border-radius:10px; margin-bottom:8px; background:var(--panel);}
+.parsed-item .pi-text{flex:1; font-size:16px;}
+.parsed-item button{min-height:44px; font-size:15px; padding:6px 10px;}
+
+.nothere, .unresolved{margin-top:16px;}
+.nothere .tags{display:flex; flex-wrap:wrap; gap:6px;}
+.tag{border:2px solid var(--boxb); border-radius:8px; padding:6px 10px; font-weight:700; font-size:16px;}
+.unresolved li{margin-bottom:8px; color:var(--sub); font-weight:600;}
+.hint{color:var(--muted); font-size:14px;}
+.gallery-item{margin-bottom:16px;}
+.gallery-item .gl{color:#fff; font-weight:700; margin-bottom:4px;}
+.gallery-item img{max-height:60vh;}
+</style>
+</head>
+<body data-screen="setup">
+
+<!-- ==========================================================
+     SCREEN 1 — SETUP
+     ========================================================== -->
+<section id="screen-setup" class="screen">
+  <div class="topbar">
+    <h1>Setup — before the walk</h1>
+    <button class="mini-btn" id="theme-toggle-1">Light/Dark</button>
+  </div>
+  <p class="hint" id="today-label"></p>
+
+  <label for="sub-paste" style="font-weight:700; display:block; margin-bottom:6px;">Paste substitute texts</label>
+  <textarea id="sub-paste" placeholder="Bus 893 Route 4001 is on Bus 15-801 to Maynard Jackson HS STOP to end&#10;Bus 21-021, Route 4014 is on Bus 2412 to Maynard Jackson HS STOP to end"></textarea>
+  <div class="row" style="margin-top:8px;">
+    <button id="parse-btn" class="btn-primary">Parse texts</button>
+    <button id="clear-subs-btn">Clear list</button>
+  </div>
+
+  <h3 style="margin-top:16px;">Parsed substitutes</h3>
+  <div id="parsed-list"></div>
+
+  <details style="margin-top:8px;">
+    <summary style="min-height:44px; display:flex; align-items:center; font-weight:700;">Add one manually</summary>
+    <div style="display:flex; flex-direction:column; gap:8px; margin-top:8px;">
+      <input type="text" id="m-home" placeholder="Home bus number (e.g. 893)">
+      <input type="text" id="m-route" placeholder="Route number (e.g. 4001)">
+      <input type="text" id="m-sub" placeholder="Sub bus number (e.g. 15-801)">
+      <button id="m-add-btn">Add substitute</button>
+    </div>
+  </details>
+
+  <button id="start-walk-btn" class="btn-primary btn-wide" style="margin-top:20px; min-height:72px; font-size:24px;">Start walk</button>
+</section>
+
+<!-- ==========================================================
+     SCREEN 2 — CAPTURE
+     ========================================================== -->
+<section id="screen-capture" class="screen">
+  <div class="topbar">
+    <h1>Capture</h1>
+    <div class="row" style="flex:0 0 auto; gap:6px;">
+      <button class="mini-btn" id="theme-toggle-2">◐</button>
+      <button class="mini-btn" id="to-board-btn">Board ▸</button>
+    </div>
+  </div>
+
+  <div id="mini-board"></div>
+
+  <div id="viewfinder-wrap">
+    <video id="viewfinder" playsinline muted autoplay></video>
+    <span id="cam-mode">camera…</span>
+    <span id="cam-fallback-msg" style="display:none;">Camera fallback mode — tapping a chip opens the camera.</span>
+  </div>
+
+  <div class="legbar" id="legbar">
+    <button data-leg="A"><span>Inside</span><span class="lc" id="lc-A">0</span></button>
+    <button data-leg="B"><span>Outside</span><span class="lc" id="lc-B">0</span></button>
+    <button data-leg="C"><span>Left</span><span class="lc" id="lc-C">0</span></button>
+  </div>
+
+  <div class="chipgrid" id="chipgrid"></div>
+
+  <button id="sub-btn">SUB — un-notified substitute</button>
+
+  <input type="file" id="file-input" accept="image/*" capture="environment" style="display:none;">
+</section>
+
+<!-- ==========================================================
+     SCREEN 3 — BOARD
+     ========================================================== -->
+<section id="screen-board" class="screen">
+  <div class="topbar">
+    <h1>Board</h1>
+    <div class="row" style="flex:0 0 auto; gap:6px;">
+      <button class="mini-btn" id="theme-toggle-3">◐</button>
+      <button class="mini-btn" id="back-to-capture-btn">◂ Capture</button>
+    </div>
+  </div>
+
+  <div id="full-board"></div>
+
+  <div class="row" style="margin-top:16px;">
+    <button id="save-board-btn" class="btn-primary">Save board as image</button>
+    <button id="save-photos-btn">Save all photos</button>
+  </div>
+
+  <div class="nothere">
+    <h3>Not here</h3>
+    <div class="tags" id="nothere-tags"></div>
+  </div>
+
+  <div class="unresolved">
+    <h3>Unresolved — cross-check</h3>
+    <ul id="unresolved-list"></ul>
+  </div>
+
+  <button id="new-day-btn" class="btn-danger btn-wide" style="margin-top:24px;">Clear everything (start a new day)</button>
+</section>
+
+<!-- ========================= OVERLAYS ========================= -->
+<div class="overlay" id="photo-overlay">
+  <h2 id="photo-overlay-title">Photo</h2>
+  <img id="photo-overlay-img" alt="captured bus">
+  <div class="ov-actions">
+    <button id="photo-overlay-close">Close</button>
+  </div>
+</div>
+
+<div class="overlay" id="slot-overlay">
+  <h2 id="slot-overlay-title">Correct entry</h2>
+  <img id="slot-overlay-img" alt="captured bus" style="max-height:50vh;">
+  <div style="display:flex; flex-direction:column; gap:10px; margin-top:12px;">
+    <button id="slot-edit-sub">Mark / edit substitute</button>
+    <button id="slot-remove" class="btn-danger">Remove this capture</button>
+    <button id="slot-overlay-close">Cancel</button>
+  </div>
+</div>
+
+<div class="overlay" id="keypad">
+  <h2 id="keypad-title">Which bus is this replacing?</h2>
+  <div class="display" id="keypad-display">&nbsp;</div>
+  <div id="keypad-warn"></div>
+  <div class="keys">
+    <button data-k="1">1</button><button data-k="2">2</button><button data-k="3">3</button>
+    <button data-k="4">4</button><button data-k="5">5</button><button data-k="6">6</button>
+    <button data-k="7">7</button><button data-k="8">8</button><button data-k="9">9</button>
+    <button data-k="-">–</button><button data-k="0">0</button><button data-k="bk">⌫</button>
+  </div>
+  <div style="display:flex; gap:10px; margin-top:12px;">
+    <button id="keypad-unknown" style="flex:1;">Unknown for now</button>
+    <button id="keypad-done" class="btn-primary" style="flex:1;">Done</button>
+  </div>
+</div>
+
+<div class="overlay" id="gallery-overlay">
+  <h2>All photos</h2>
+  <p class="hint" id="gallery-hint">Long-press a photo to save it to your camera roll. Or use Share below.</p>
+  <div class="ov-actions">
+    <button id="gallery-share">Share all</button>
+    <button id="gallery-close">Close</button>
+  </div>
+  <div id="gallery-body" style="overflow:auto; margin-top:12px;"></div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ============================================================
+   CONFIG — edit this block when routes or the drive changes
+   ============================================================ */
+const CONFIG = {
+
+  /* The fixed bus roster. `bus` is the HOME bus number students look for. */
+  roster: [
+    { route:"4001", bus:"893",    area:"Summer Hill / Mechanicsville" },
+    { route:"4003", bus:"20-974", area:"Benteen / Milton" },
+    { route:"4004", bus:"869",    area:"Martin / Haygood" },
+    { route:"4005", bus:"859",    area:"Moreland / Benteen" },
+    { route:"4007", bus:"873",    area:"Flat Shoals / Burgess" },
+    { route:"4008", bus:"2408",   area:"Glenwood / Eastlake" },
+    { route:"4009", bus:"21-009", area:"Fulton Street / Mechanicsville" },
+    { route:"4010", bus:"21-011", area:"Tuskegee / Trestletree" },
+    { route:"4011", bus:"21-017", area:"Humphries / Mechanicsville" },
+    { route:"4012", bus:"15-802", area:"LaFrance / Hardy" },
+    { route:"4013", bus:"23-022", area:"Kirkwood / Toomer" },
+    { route:"4014", bus:"21-021", area:"McDaniel Street / Glenn" },
+    { route:"4015", bus:"2415",   area:"Edgewood Court" },
+    { route:"4017", bus:"23-008", area:"Summer Hill / Mechanicsville" },
+    { route:"4018", bus:"2401",   area:"Cabbagetown" },
+  ],
+
+  /* Slot layout. Capture order within a leg maps to these slot numbers.
+     Capacities are nominal only — a leg is never capped. Extra captures
+     beyond this list get numbers appended automatically (18, 19, ...). */
+  legs: {
+    A: { name:"Inside",  desc:"Inside lane, parking-lot side",  slots:[1,3,5] },
+    B: { name:"Outside", desc:"Outside lane, curb side",        slots:[2,4,6,7,8,9,10,11,12,13] },
+    C: { name:"Left",    desc:"Left of portico",                slots:[14,15,16,17] },
+  },
+};
+
+/* ============================================================
+   STATE
+   ============================================================ */
+const LS_KEY = "mjhs_bus_board_v1";
+const todayStr = () => new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD, local
+
+let state = freshState();
+function freshState(){
+  return {
+    date: todayStr(),
+    screen: "setup",
+    theme: "dark",
+    subsFromText: [],                       // {home, route, sub}
+    captures: {},                           // id -> capture
+    legCaptures: { A:[], B:[], C:[] },      // ordered capture ids per leg
+    cameraMode: "live",                     // "live" | "file"
+  };
+}
+function persist(){
+  try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch(e){}
+}
+function loadState(){
+  let raw = null;
+  try { raw = localStorage.getItem(LS_KEY); } catch(e){}
+  if(!raw) return;
+  try {
+    const s = JSON.parse(raw);
+    if(s.date === todayStr()){
+      state = Object.assign(freshState(), s);
+      state.legCaptures = Object.assign({A:[],B:[],C:[]}, s.legCaptures||{});
+    }
+  } catch(e){}
+}
+
+/* ============================================================
+   INDEXEDDB — photo blobs
+   ============================================================ */
+function openDB(){
+  return new Promise((res,rej)=>{
+    const r = indexedDB.open("mjhs_photos", 1);
+    r.onupgradeneeded = () => { if(!r.result.objectStoreNames.contains("p")) r.result.createObjectStore("p"); };
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+}
+async function idbPut(k,v){ const db=await openDB(); return new Promise((res,rej)=>{ const t=db.transaction("p","readwrite"); t.objectStore("p").put(v,k); t.oncomplete=res; t.onerror=()=>rej(t.error); }); }
+async function idbGet(k){ const db=await openDB(); return new Promise((res,rej)=>{ const t=db.transaction("p","readonly"); const q=t.objectStore("p").get(k); q.onsuccess=()=>res(q.result); q.onerror=()=>rej(q.error); }); }
+async function idbDel(k){ const db=await openDB(); return new Promise((res,rej)=>{ const t=db.transaction("p","readwrite"); t.objectStore("p").delete(k); t.oncomplete=res; t.onerror=()=>rej(t.error); }); }
+async function idbClear(){ try{ const db=await openDB(); return new Promise((res)=>{ const t=db.transaction("p","readwrite"); t.objectStore("p").clear(); t.oncomplete=res; t.onerror=res; }); }catch(e){} }
+
+/* ============================================================
+   HELPERS
+   ============================================================ */
+const $ = (s,el=document)=>el.querySelector(s);
+const norm = s => (s||"").replace(/\s+/g,"");
+const legOrder = ["A","B","C"];
+
+function vibrate(ms){ try{ navigator.vibrate && navigator.vibrate(ms||30); }catch(e){} }
+
+let toastTimer=null;
+function toast(msg){
+  const t = $("#toast"); t.textContent = msg; t.style.display="block";
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>{ t.style.display="none"; }, 2600);
+}
+
+function newId(p){ return p + Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+
+/* find the Transportation text sub that matches a roster entry (by route, then home number) */
+function textSubForEntry(e){
+  return state.subsFromText.find(s => s.route === e.route) ||
+         state.subsFromText.find(s => norm(s.home) === norm(e.bus)) || null;
+}
+/* find a text sub given a typed home number */
+function textSubByHome(v){
+  const e = CONFIG.roster.find(r => norm(r.bus) === norm(v));
+  if(e){ const t = textSubForEntry(e); if(t) return t; }
+  return state.subsFromText.find(s => norm(s.home) === norm(v)) || null;
+}
+function rosterByBus(bus){ return CONFIG.roster.find(r => norm(r.bus) === norm(bus)) || null; }
+
+/* ------------------------------------------------------------
+   DATA MODEL: slot assignments (pure — no display logic)
+   Returns { A:[{slotNo,id,cap,leg,index}], B:[...], C:[...] }
+   ------------------------------------------------------------ */
+function getAssignments(){
+  let extra = 18;
+  const res = {};
+  for(const leg of legOrder){
+    const nominal = CONFIG.legs[leg].slots;
+    res[leg] = state.legCaptures[leg].map((id,i)=>{
+      const slotNo = i < nominal.length ? nominal[i] : (extra++);
+      return { slotNo, id, cap: state.captures[id], leg, index:i };
+    });
+  }
+  return res;
+}
+function flatAssignments(){
+  const a = getAssignments();
+  return [...a.A, ...a.B, ...a.C];
+}
+function mostRecentId(){
+  let best=null, bestTs=-1;
+  for(const c of Object.values(state.captures)){ if(c.ts>bestTs){ bestTs=c.ts; best=c.id; } }
+  return best;
+}
+
+/* what home number + ride note a slot displays */
+function slotDisplay(cap){
+  if(!cap) return null;
+  if(!cap.isSub){
+    return { home: cap.bus, ride: null };
+  }
+  // substitute
+  let ride = cap.subNumber;
+  if(!ride && cap.subFor){ const t = textSubByHome(cap.subFor); if(t) ride = t.sub; }
+  const home = cap.bus || cap.subFor || null;
+  return { home: home, ride: ride || null, sub:true };
+}
+
+/* ============================================================
+   RENDER: spatial board (shared by mini + full)
+   ============================================================ */
+function makeSlotEl(slotNo, cap, opts){
+  const d = document.createElement("div");
+  d.className = "slot";
+  if(cap){
+    const disp = slotDisplay(cap);
+    d.innerHTML =
+      `<span class="sn">${slotNo}</span>` +
+      `<span class="bus">${disp.home ? esc(disp.home) : "SUB"}</span>` +
+      (disp.sub ? `<span class="ride">${disp.ride ? "Ride "+esc(disp.ride) : "SUB — ask driver"}</span>` : "");
+    if(opts.tappable){
+      d.classList.add("tappable");
+      d.addEventListener("click", ()=>opts.onTap(cap));
+    }
+    if(opts.recentId && cap.id === opts.recentId) d.classList.add("recent");
+  } else {
+    d.className = "slot empty";
+    d.innerHTML = `<span class="sn">${slotNo!=null?slotNo:""}</span><span class="bus">–</span>`;
+  }
+  return d;
+}
+function esc(s){ return String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+
+function nextSlotNo(leg, count){
+  const nominal = CONFIG.legs[leg].slots;
+  return count < nominal.length ? nominal[count] : (18 + Math.max(0, count - nominal.length));
+}
+
+/* Build the board DOM. leftCol = leg C, right inner = leg A, right outer = leg B. */
+function renderBoardInto(container, opts){
+  opts = opts || {};
+  const a = getAssignments();
+  container.innerHTML = "";
+  const wrap = document.createElement("div");
+  wrap.className = "board-wrap";
+
+  // LEFT section (leg C) — single column
+  const left = document.createElement("div");
+  left.className = "board-col";
+  const ll = document.createElement("div"); ll.className="board-section-label"; ll.innerHTML="LEFT<br>&nbsp;<br>&nbsp;"; left.appendChild(ll);
+  a.C.forEach(x => left.appendChild(makeSlotEl(x.slotNo, x.cap, tapOpts(opts))));
+  left.appendChild(makeSlotEl(nextSlotNo("C", a.C.length), null, {}));
+  wrap.appendChild(left);
+
+  // RIGHT section — inner (A) + outer (B)
+  const right = document.createElement("div");
+  right.className = "board-col";
+  const rl = document.createElement("div"); rl.className="board-section-label"; rl.textContent="RIGHT (from exit)"; right.appendChild(rl);
+  const group = document.createElement("div"); group.className="right-group";
+
+  const inner = document.createElement("div"); inner.className="board-col";
+  const il = document.createElement("div"); il.className="board-section-label"; il.textContent="inner"; inner.appendChild(il);
+  a.A.forEach(x => inner.appendChild(makeSlotEl(x.slotNo, x.cap, tapOpts(opts))));
+  inner.appendChild(makeSlotEl(nextSlotNo("A", a.A.length), null, {}));
+
+  const outer = document.createElement("div"); outer.className="board-col";
+  const ol = document.createElement("div"); ol.className="board-section-label"; ol.textContent="outer"; outer.appendChild(ol);
+  a.B.forEach(x => outer.appendChild(makeSlotEl(x.slotNo, x.cap, tapOpts(opts))));
+  outer.appendChild(makeSlotEl(nextSlotNo("B", a.B.length), null, {}));
+
+  group.appendChild(inner); group.appendChild(outer);
+  right.appendChild(group);
+  wrap.appendChild(right);
+
+  container.appendChild(wrap);
+}
+function tapOpts(opts){
+  return { tappable: !!opts.onTap, onTap: opts.onTap, recentId: opts.recentId };
+}
+
+/* ============================================================
+   SCREEN 1 — SETUP
+   ============================================================ */
+function parseSubText(text){
+  const out = [];
+  const re = /Bus\s+([0-9][0-9-]*)\s*,?\s*Route\s+([0-9]+)\s+is\s+on\s+Bus\s+([0-9][0-9-]*)/ig;
+  let m;
+  while((m = re.exec(text)) !== null){
+    out.push({ home:m[1].trim(), route:m[2].trim(), sub:m[3].trim() });
+  }
+  return out;
+}
+function renderParsedList(){
+  const box = $("#parsed-list");
+  box.innerHTML = "";
+  if(state.subsFromText.length === 0){
+    box.innerHTML = `<p class="hint">Nothing parsed yet.</p>`;
+    return;
+  }
+  state.subsFromText.forEach((s,i)=>{
+    const known = !!rosterByBus(s.home) || CONFIG.roster.some(r=>r.route===s.route);
+    const div = document.createElement("div");
+    div.className = "parsed-item";
+    div.innerHTML = `<span class="pi-text">Route <b>${esc(s.route)}</b>: bus <b>${esc(s.home)}</b> → ride <b>${esc(s.sub)}</b>${known?"":' <span style="color:var(--sub)">(not on roster)</span>'}</span>`;
+    const del = document.createElement("button");
+    del.textContent = "Delete";
+    del.addEventListener("click", ()=>{ state.subsFromText.splice(i,1); persist(); renderParsedList(); });
+    div.appendChild(del);
+    box.appendChild(div);
+  });
+}
+
+/* ============================================================
+   SCREEN 2 — CAPTURE
+   ============================================================ */
+let videoStream = null;
+
+async function startCamera(){
+  const video = $("#viewfinder");
+  const modeTag = $("#cam-mode");
+  try {
+    if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw new Error("no getUserMedia");
+    videoStream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:{ ideal:"environment" } }, audio:false });
+    video.srcObject = videoStream;
+    await video.play().catch(()=>{});
+    state.cameraMode = "live";
+    modeTag.textContent = "LIVE";
+    video.style.display = "";
+    $("#cam-fallback-msg").style.display = "none";
+  } catch(e){
+    state.cameraMode = "file";
+    modeTag.textContent = "PHOTO FALLBACK";
+    video.style.display = "none";
+    $("#cam-fallback-msg").style.display = "";
+  }
+  persist();
+}
+
+async function blobFromVideo(){
+  const v = $("#viewfinder");
+  const vw = v.videoWidth, vh = v.videoHeight;
+  if(!vw || !vh) return null;
+  const scale = Math.min(1, 1000 / Math.max(vw, vh));
+  const c = document.createElement("canvas");
+  c.width = Math.round(vw*scale); c.height = Math.round(vh*scale);
+  c.getContext("2d").drawImage(v, 0, 0, c.width, c.height);
+  return await new Promise(r => c.toBlob(r, "image/jpeg", 0.8));
+}
+async function blobFromFile(file){
+  let w,h,drawSrc;
+  try {
+    const bmp = await createImageBitmap(file);
+    w = bmp.width; h = bmp.height; drawSrc = bmp;
+  } catch(e){
+    const url = URL.createObjectURL(file);
+    const img = await new Promise((res,rej)=>{ const im=new Image(); im.onload=()=>res(im); im.onerror=rej; im.src=url; });
+    w = img.naturalWidth; h = img.naturalHeight; drawSrc = img;
+  }
+  const scale = Math.min(1, 1000 / Math.max(w, h));
+  const c = document.createElement("canvas");
+  c.width = Math.round(w*scale); c.height = Math.round(h*scale);
+  c.getContext("2d").drawImage(drawSrc, 0, 0, c.width, c.height);
+  return await new Promise(r => c.toBlob(r, "image/jpeg", 0.8));
+}
+
+let pendingAction = null; // for file-fallback mode
+
+async function captureAction(action){
+  // action: {type:"bus", entry} | {type:"sub"}
+  if(state.cameraMode === "file"){
+    pendingAction = action;
+    $("#file-input").value = "";
+    $("#file-input").click();
+    return;
+  }
+  const blob = await blobFromVideo();
+  await finalizeCapture(action, blob);
+}
+
+$("#file-input").addEventListener("change", async (ev)=>{
+  const file = ev.target.files && ev.target.files[0];
+  const action = pendingAction; pendingAction = null;
+  if(!file || !action) return;
+  const blob = await blobFromFile(file);
+  await finalizeCapture(action, blob);
+});
+
+async function finalizeCapture(action, blob){
+  const id = newId("c_");
+  let photoId = null;
+  if(blob){
+    photoId = newId("p_");
+    try { await idbPut(photoId, blob); } catch(e){ toast("Photo storage failed — entry kept"); photoId = null; }
+  }
+  const cap = {
+    id, leg: state.activeLeg, ts: Date.now(), photoId,
+    bus: null, isSub: false, subNumber: null, subFor: null, unknownSub: false,
+  };
+  if(action.type === "bus"){
+    cap.bus = action.entry.bus;
+    const t = textSubForEntry(action.entry);
+    if(t){ cap.isSub = true; cap.subNumber = t.sub; cap.subFor = action.entry.bus; }
+  } else {
+    cap.isSub = true;
+    cap.unknownSub = true;
+  }
+  state.captures[id] = cap;
+  state.legCaptures[state.activeLeg].push(id);
+  persist();
+  vibrate();
+  renderCapture();
+  if(action.type === "sub") openKeypad(id);
+}
+
+function renderCapture(){
+  // mini board
+  renderBoardInto($("#mini-board"), {
+    onTap: (cap)=>openSlotOverlay(cap),
+    recentId: mostRecentId(),
+  });
+  // leg bar
+  const a = getAssignments();
+  legOrder.forEach(leg=>{
+    const btn = $(`#legbar button[data-leg="${leg}"]`);
+    btn.classList.toggle("active", state.activeLeg === leg);
+    $(`#lc-${leg}`).textContent = a[leg].length;
+  });
+  // chip grid — stable CONFIG order, used ones removed, never re-sorted
+  const grid = $("#chipgrid");
+  grid.innerHTML = "";
+  const usedBus = new Set(Object.values(state.captures).filter(c=>c.bus).map(c=>norm(c.bus)));
+  CONFIG.roster.forEach(entry=>{
+    if(usedBus.has(norm(entry.bus))) return;
+    const t = textSubForEntry(entry);
+    const chip = document.createElement("button");
+    chip.className = "chip" + (t ? " sub" : "");
+    chip.innerHTML =
+      `<span class="cn">${esc(entry.bus)}</span>` +
+      `<span class="cr">Rt ${esc(entry.route)}</span>` +
+      (t ? `<span class="cs">sub: ${esc(t.sub)}</span>` : "");
+    chip.addEventListener("click", ()=>captureAction({ type:"bus", entry }));
+    grid.appendChild(chip);
+  });
+}
+
+/* ---- slot correction overlay ---- */
+let slotOverlayCap = null;
+async function openSlotOverlay(cap){
+  slotOverlayCap = cap;
+  const a = flatAssignments().find(x=>x.id===cap.id);
+  $("#slot-overlay-title").textContent = a ? `Slot ${a.slotNo} — correct entry` : "Correct entry";
+  const img = $("#slot-overlay-img");
+  img.style.display = "none"; img.src = "";
+  if(cap.photoId){
+    try { const b = await idbGet(cap.photoId); if(b){ img.src = URL.createObjectURL(b); img.style.display=""; } } catch(e){}
+  }
+  $("#slot-overlay").classList.add("on");
+}
+$("#slot-overlay-close").addEventListener("click", ()=>$("#slot-overlay").classList.remove("on"));
+$("#slot-edit-sub").addEventListener("click", ()=>{
+  const cap = slotOverlayCap;
+  $("#slot-overlay").classList.remove("on");
+  if(!cap) return;
+  cap.isSub = true;
+  openKeypad(cap.id);
+});
+$("#slot-remove").addEventListener("click", async ()=>{
+  const cap = slotOverlayCap;
+  $("#slot-overlay").classList.remove("on");
+  if(!cap) return;
+  const arr = state.legCaptures[cap.leg];
+  const i = arr.indexOf(cap.id);
+  if(i>=0) arr.splice(i,1);
+  if(cap.photoId) idbDel(cap.photoId);
+  delete state.captures[cap.id];
+  persist();
+  renderCapture();
+  toast("Entry removed — following buses shifted up");
+});
+
+/* ---- keypad ---- */
+let keypadTargetId = null;
+let keypadValue = "";
+function openKeypad(capId){
+  keypadTargetId = capId;
+  keypadValue = "";
+  const cap = state.captures[capId];
+  if(cap && cap.subFor) keypadValue = cap.subFor;
+  $("#keypad-warn").textContent = "";
+  updateKeypadDisplay();
+  $("#keypad").classList.add("on");
+}
+function updateKeypadDisplay(){
+  $("#keypad-display").textContent = keypadValue || " ";
+}
+$("#keypad .keys").addEventListener("click", (e)=>{
+  const b = e.target.closest("button"); if(!b) return;
+  const k = b.dataset.k;
+  if(k === "bk") keypadValue = keypadValue.slice(0,-1);
+  else if(k === "-"){ if(keypadValue && !keypadValue.endsWith("-")) keypadValue += "-"; }
+  else keypadValue += k;
+  updateKeypadDisplay();
+  vibrate(15);
+});
+$("#keypad-unknown").addEventListener("click", ()=>{
+  const cap = state.captures[keypadTargetId];
+  if(cap){ cap.isSub = true; cap.unknownSub = true; cap.subFor = null; cap.bus = null; cap.subNumber = null; }
+  closeKeypad();
+});
+$("#keypad-done").addEventListener("click", ()=>{
+  const cap = state.captures[keypadTargetId];
+  if(!cap){ closeKeypad(); return; }
+  const v = keypadValue.trim().replace(/-+$/,"");
+  if(!v){
+    cap.isSub = true; cap.unknownSub = true; cap.subFor = null; cap.bus = null;
+    closeKeypad(); return;
+  }
+  const match = rosterByBus(v);
+  if(!match){
+    // warn but allow override — second tap confirms
+    if($("#keypad-warn").dataset.for !== v){
+      $("#keypad-warn").textContent = `${v} is not on the roster. Tap Done again to keep it anyway.`;
+      $("#keypad-warn").dataset.for = v;
+      return;
+    }
+  }
+  cap.isSub = true;
+  cap.unknownSub = false;
+  cap.subFor = v;
+  cap.bus = v; // show the home number on the board + free its chip
+  const t = textSubByHome(v);
+  cap.subNumber = t ? t.sub : cap.subNumber;
+  closeKeypad();
+  if(!match) toast("Kept " + v + " (not on roster)");
+});
+function closeKeypad(){
+  $("#keypad").classList.remove("on");
+  $("#keypad-warn").textContent = ""; delete $("#keypad-warn").dataset.for;
+  keypadTargetId = null; keypadValue = "";
+  persist();
+  renderCapture();
+}
+
+/* ============================================================
+   SCREEN 3 — BOARD
+   ============================================================ */
+function renderBoard(){
+  renderBoardInto($("#full-board"), {
+    onTap: (cap)=>showPhoto(cap),
+  });
+
+  // Not here
+  const usedBus = new Set(Object.values(state.captures).filter(c=>c.bus).map(c=>norm(c.bus)));
+  const nh = $("#nothere-tags"); nh.innerHTML = "";
+  const notHere = CONFIG.roster.filter(r => !usedBus.has(norm(r.bus)));
+  if(notHere.length === 0) nh.innerHTML = `<span class="hint">All roster buses placed.</span>`;
+  notHere.forEach(r=>{
+    const s = document.createElement("span");
+    s.className = "tag";
+    s.textContent = r.bus + "  ·  Rt " + r.route;
+    nh.appendChild(s);
+  });
+
+  // Unresolved
+  const ul = $("#unresolved-list"); ul.innerHTML = "";
+  const items = computeUnresolved();
+  if(items.length === 0) ul.innerHTML = `<li style="color:var(--ok)">Nothing unresolved.</li>`;
+  items.forEach(t=>{ const li=document.createElement("li"); li.textContent=t; ul.appendChild(li); });
+}
+
+function computeUnresolved(){
+  const items = [];
+  const caps = Object.values(state.captures);
+
+  for(const a of flatAssignments()){
+    const c = a.cap;
+    if(c.isSub && c.unknownSub){
+      items.push(`Slot ${a.slotNo}: substitute bus — driver not yet asked which bus it replaces.`);
+    } else if(c.isSub && c.subFor && !c.subNumber && !textSubByHome(c.subFor)){
+      items.push(`Slot ${a.slotNo}: flagged as sub for ${c.subFor}, but no matching Transportation text.`);
+    }
+  }
+  for(const s of state.subsFromText){
+    const placed = caps.some(c => c.subFor && norm(c.subFor) === norm(s.home)) ||
+                   caps.some(c => { const e = rosterByBus(c.bus); return e && e.route === s.route; });
+    if(!placed){
+      items.push(`Route ${s.route}: bus ${s.home} → ride ${s.sub} (Transportation text) — home bus never placed on the board.`);
+    }
+  }
+  return items;
+}
+
+/* full-screen photo for verification */
+async function showPhoto(cap){
+  const a = flatAssignments().find(x=>x.id===cap.id);
+  $("#photo-overlay-title").textContent = a ? `Slot ${a.slotNo}` : "Photo";
+  const img = $("#photo-overlay-img");
+  img.removeAttribute("src");
+  let got = false;
+  if(cap.photoId){
+    try { const b = await idbGet(cap.photoId); if(b){ img.src = URL.createObjectURL(b); got = true; } } catch(e){}
+  }
+  if(!got) toast("No photo stored for this slot");
+  $("#photo-overlay").classList.add("on");
+}
+$("#photo-overlay-close").addEventListener("click", ()=>$("#photo-overlay").classList.remove("on"));
+
+/* ---- Save board as image ---- */
+async function saveBoardImage(){
+  const a = getAssignments();
+  const SB = 150, GAP = 14, PAD = 40, HEAD = 90;
+  const leftN = a.C.length + 1;
+  const innerN = a.A.length + 1;
+  const outerN = a.B.length + 1;
+  const rightRows = Math.max(innerN, outerN);
+  const rows = Math.max(leftN, rightRows);
+
+  const width = PAD*2 + SB + GAP*3 + SB*2 + 60;   // left + gap + inner + outer
+  const height = HEAD + PAD + rows*(SB+GAP) + PAD;
+  const c = document.createElement("canvas");
+  c.width = width; c.height = height;
+  const x = c.getContext("2d");
+  const css = getComputedStyle(document.documentElement);
+  const bg = css.getPropertyValue("--bg").trim() || "#0b0b0c";
+  const fg = css.getPropertyValue("--fg").trim() || "#fff";
+  const boxb = css.getPropertyValue("--boxb").trim() || "#3c4048";
+  const subC = css.getPropertyValue("--sub").trim() || "#ff5a3c";
+  const box = css.getPropertyValue("--box").trim() || "#1b1c1f";
+
+  x.fillStyle = bg; x.fillRect(0,0,width,height);
+  x.fillStyle = fg; x.font = "bold 34px -apple-system,sans-serif";
+  x.fillText("MJHS PM Bus Board", PAD, 50);
+  x.fillStyle = css.getPropertyValue("--muted").trim() || "#9aa";
+  x.font = "20px -apple-system,sans-serif";
+  x.fillText(new Date().toLocaleString(), PAD, 78);
+
+  const drawSlot = (px,py,slotNo,cap)=>{
+    x.fillStyle = cap ? box : bg;
+    x.strokeStyle = boxb; x.lineWidth = 3;
+    roundRect(x, px, py, SB, SB, 12); x.fill(); x.stroke();
+    x.textAlign = "center";
+    x.fillStyle = css.getPropertyValue("--muted").trim() || "#9aa";
+    x.font = "18px -apple-system,sans-serif";
+    x.fillText(slotNo!=null?String(slotNo):"", px+SB/2, py+24);
+    if(cap){
+      const disp = slotDisplay(cap);
+      x.fillStyle = fg; x.font = "bold 40px -apple-system,sans-serif";
+      x.fillText(disp.home ? String(disp.home) : "SUB", px+SB/2, py+SB/2+14);
+      if(disp.sub){
+        x.fillStyle = subC; x.font = "bold 20px -apple-system,sans-serif";
+        x.fillText(disp.ride ? "Ride "+disp.ride : "SUB — ask", px+SB/2, py+SB-16);
+      }
+    } else {
+      x.fillStyle = css.getPropertyValue("--muted").trim() || "#9aa";
+      x.font = "24px -apple-system,sans-serif";
+      x.fillText("–", px+SB/2, py+SB/2+10);
+    }
+    x.textAlign = "left";
+  };
+
+  const x0 = PAD;
+  const xInner = PAD + SB + GAP*3 + 20;
+  const xOuter = xInner + SB + GAP;
+  const y0 = HEAD + PAD;
+
+  x.fillStyle = css.getPropertyValue("--muted").trim() || "#9aa";
+  x.font = "16px -apple-system,sans-serif";
+  x.fillText("LEFT", x0, y0-10);
+  x.fillText("inner", xInner, y0-10);
+  x.fillText("outer", xOuter, y0-10);
+
+  for(let i=0;i<leftN;i++){
+    const cap = a.C[i] ? a.C[i].cap : null;
+    const sn = a.C[i] ? a.C[i].slotNo : nextSlotNo("C", a.C.length);
+    drawSlot(x0, y0 + i*(SB+GAP), sn, cap);
+  }
+  for(let i=0;i<innerN;i++){
+    const cap = a.A[i] ? a.A[i].cap : null;
+    const sn = a.A[i] ? a.A[i].slotNo : nextSlotNo("A", a.A.length);
+    drawSlot(xInner, y0 + i*(SB+GAP), sn, cap);
+  }
+  for(let i=0;i<outerN;i++){
+    const cap = a.B[i] ? a.B[i].cap : null;
+    const sn = a.B[i] ? a.B[i].slotNo : nextSlotNo("B", a.B.length);
+    drawSlot(xOuter, y0 + i*(SB+GAP), sn, cap);
+  }
+
+  const blob = await new Promise(r => c.toBlob(r, "image/png"));
+  await shareOrDownload(blob, "mjhs-bus-board.png", "image/png");
+}
+function roundRect(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.arcTo(x+w,y,x+w,y+h,r);
+  ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r);
+  ctx.arcTo(x,y,x+w,y,r);
+  ctx.closePath();
+}
+async function shareOrDownload(blob, filename, type){
+  const file = new File([blob], filename, { type });
+  if(navigator.canShare && navigator.canShare({ files:[file] })){
+    try { await navigator.share({ files:[file] }); return; } catch(e){ if(e && e.name === "AbortError") return; }
+  }
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 4000);
+}
+
+/* ---- Save all photos ---- */
+async function openGallery(){
+  const body = $("#gallery-body");
+  body.innerHTML = "";
+  const list = flatAssignments().filter(x=>x.cap.photoId);
+  if(list.length === 0){ body.innerHTML = `<p class="hint" style="color:#fff">No photos stored.</p>`; }
+  const files = [];
+  for(const x of list){
+    try {
+      const b = await idbGet(x.cap.photoId);
+      if(!b) continue;
+      const disp = slotDisplay(x.cap);
+      files.push(new File([b], `slot-${x.slotNo}-bus-${disp.home||"sub"}.jpg`, { type:"image/jpeg" }));
+      const item = document.createElement("div");
+      item.className = "gallery-item";
+      const label = document.createElement("div");
+      label.className = "gl";
+      label.textContent = `Slot ${x.slotNo} — ${disp.home || "substitute"}`;
+      const im = document.createElement("img");
+      im.src = URL.createObjectURL(b);
+      item.appendChild(label); item.appendChild(im);
+      body.appendChild(item);
+    } catch(e){}
+  }
+  $("#gallery-share").onclick = async ()=>{
+    if(navigator.canShare && files.length && navigator.canShare({ files })){
+      try { await navigator.share({ files, title:"MJHS bus photos" }); } catch(e){}
+    } else {
+      toast("Long-press each photo to save it");
+    }
+  };
+  $("#gallery-overlay").classList.add("on");
+}
+$("#gallery-close").addEventListener("click", ()=>$("#gallery-overlay").classList.remove("on"));
+
+/* ============================================================
+   NAVIGATION + WIRING
+   ============================================================ */
+function show(screen){
+  state.screen = screen;
+  document.body.dataset.screen = screen;
+  persist();
+  if(screen === "capture") renderCapture();
+  if(screen === "board") renderBoard();
+  window.scrollTo(0,0);
+}
+
+function applyTheme(){
+  document.documentElement.dataset.theme = state.theme === "light" ? "light" : "dark";
+  document.querySelector('meta[name="theme-color"]').setAttribute("content", state.theme === "light" ? "#f3f3f4" : "#0b0b0c");
+}
+function toggleTheme(){ state.theme = state.theme === "light" ? "dark" : "light"; persist(); applyTheme(); }
+["#theme-toggle-1","#theme-toggle-2","#theme-toggle-3"].forEach(s=>$(s).addEventListener("click", toggleTheme));
+
+// Setup screen
+$("#parse-btn").addEventListener("click", ()=>{
+  const parsed = parseSubText($("#sub-paste").value);
+  if(parsed.length === 0){ toast("No substitute lines recognized"); return; }
+  // merge, de-dupe by route+home+sub
+  parsed.forEach(p=>{
+    if(!state.subsFromText.some(s=>s.route===p.route && norm(s.home)===norm(p.home) && norm(s.sub)===norm(p.sub)))
+      state.subsFromText.push(p);
+  });
+  persist();
+  renderParsedList();
+  toast(parsed.length + " parsed");
+});
+$("#clear-subs-btn").addEventListener("click", ()=>{ state.subsFromText = []; persist(); renderParsedList(); });
+$("#m-add-btn").addEventListener("click", ()=>{
+  const home = $("#m-home").value.trim(), route = $("#m-route").value.trim(), sub = $("#m-sub").value.trim();
+  if(!home || !route || !sub){ toast("Fill all three fields"); return; }
+  state.subsFromText.push({ home, route, sub });
+  $("#m-home").value = $("#m-route").value = $("#m-sub").value = "";
+  persist(); renderParsedList(); toast("Added");
+});
+$("#start-walk-btn").addEventListener("click", async ()=>{
+  state.activeLeg = state.activeLeg || "A";
+  show("capture");
+  await startCamera();
+});
+
+// Capture screen
+$("#legbar").addEventListener("click", (e)=>{
+  const b = e.target.closest("button[data-leg]"); if(!b) return;
+  state.activeLeg = b.dataset.leg;
+  persist();
+  renderCapture();
+});
+$("#sub-btn").addEventListener("click", ()=>captureAction({ type:"sub" }));
+$("#to-board-btn").addEventListener("click", ()=>show("board"));
+
+// Board screen
+$("#back-to-capture-btn").addEventListener("click", async ()=>{
+  show("capture");
+  if(!videoStream && state.cameraMode === "live") await startCamera();
+});
+$("#save-board-btn").addEventListener("click", saveBoardImage);
+$("#save-photos-btn").addEventListener("click", openGallery);
+$("#new-day-btn").addEventListener("click", async ()=>{
+  if(!confirm("Clear the whole board and all photos?")) return;
+  await hardReset();
+});
+
+async function hardReset(){
+  try { localStorage.removeItem(LS_KEY); } catch(e){}
+  await idbClear();
+  if(videoStream){ videoStream.getTracks().forEach(t=>t.stop()); videoStream = null; }
+  state = freshState();
+  persist();
+  applyTheme();
+  renderParsedList();
+  show("setup");
+}
+
+/* ============================================================
+   PWA glue — inline manifest + generated icon (no 2nd file)
+   ============================================================ */
+function installPWABits(){
+  try {
+    const manifest = {
+      name: "MJHS PM Bus Board",
+      short_name: "Bus Board",
+      display: "standalone",
+      orientation: "portrait",
+      background_color: "#0b0b0c",
+      theme_color: "#0b0b0c",
+      start_url: "./",
+      scope: "./",
+    };
+    const blob = new Blob([JSON.stringify(manifest)], { type:"application/manifest+json" });
+    const link = document.createElement("link");
+    link.rel = "manifest";
+    link.href = URL.createObjectURL(blob);
+    document.head.appendChild(link);
+  } catch(e){}
+
+  try {
+    const c = document.createElement("canvas");
+    c.width = c.height = 180;
+    const x = c.getContext("2d");
+    x.fillStyle = "#0b0b0c"; x.fillRect(0,0,180,180);
+    x.fillStyle = "#ffd400"; roundRect(x, 18, 46, 144, 88, 16); x.fill();
+    x.fillStyle = "#0b0b0c"; x.font = "bold 44px -apple-system,sans-serif";
+    x.textAlign = "center"; x.textBaseline = "middle";
+    x.fillText("BUS", 90, 92);
+    const url = c.toDataURL("image/png");
+    ["apple-touch-icon","icon"].forEach(rel=>{
+      const l = document.createElement("link"); l.rel = rel; l.href = url; document.head.appendChild(l);
+    });
+  } catch(e){}
+}
+
+/* ============================================================
+   BOOT
+   ============================================================ */
+(async function boot(){
+  installPWABits();
+
+  // New calendar day? wipe everything.
+  let storedDate = null;
+  try { const raw = localStorage.getItem(LS_KEY); if(raw) storedDate = JSON.parse(raw).date; } catch(e){}
+  if(storedDate && storedDate !== todayStr()){
+    try { localStorage.removeItem(LS_KEY); } catch(e){}
+    await idbClear();
+  }
+
+  loadState();
+  state.activeLeg = state.activeLeg || "A";
+  applyTheme();
+
+  $("#today-label").textContent = "Today: " + new Date().toLocaleDateString(undefined,{weekday:"long", month:"long", day:"numeric"});
+  renderParsedList();
+
+  // Resume where we were, but never deep-link past setup on a fresh day.
+  const resume = (state.screen === "board") ? "board"
+              : (state.screen === "capture" && Object.keys(state.captures).length >= 0 && storedDate === todayStr()) ? "capture"
+              : "setup";
+  document.body.dataset.screen = "setup";
+  if(resume === "capture"){ show("capture"); await startCamera(); }
+  else if(resume === "board"){ show("board"); }
+  else { show("setup"); }
+})();
+
+// keep video alive when returning to the app
+document.addEventListener("visibilitychange", async ()=>{
+  if(!document.hidden && document.body.dataset.screen === "capture" && state.cameraMode === "live"){
+    const v = $("#viewfinder");
+    if(!videoStream || videoStream.getVideoTracks().every(t=>t.readyState === "ended")){
+      await startCamera();
+    } else { v.play().catch(()=>{}); }
+  }
+});
+</script>
+</body>
+</html>
